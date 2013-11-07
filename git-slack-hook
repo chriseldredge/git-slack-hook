@@ -23,6 +23,8 @@ function help() {
   echo "  git config hooks.slack.org-name 'mycompany'"
   echo "  git config hooks.slack.channel  'general'"
   echo "  git config hooks.slack.username 'git' #optional"
+  echo "  git config hooks.slack.repos-root '/path/to/repos' #optional"
+  echo "  git config hooks.slack.changeset-url-pattern 'http://yourserver/%repo_path%/changeset/%revhash%' #optional"
 }
 
 function notify() {
@@ -152,8 +154,28 @@ function notify() {
       ;;
   esac
 
+  urlpattern=`git config --get hooks.slack.changeset-url-pattern`
+  reporoot=`git config --get hooks.slack.repos-root`
+
+  urlformat=
+  if [ -n "$urlpattern" -a -n "$reporoot" ]; then
+    if [[ $PWD == ${reporoot}* ]]; then
+      idx=`echo $reporoot | wc -c | tr -d ' '`
+      repopath=`echo $PWD | cut -c$idx-`
+
+      urlformat=`echo $urlpattern | sed "s|%repo_path%|$repopath|g" | sed "s/%revhash%/%H/g"`
+    else
+      echo >&2 "$PWD is not in $reporoot. Not creating hyperlinks."
+    fi
+  fi
+
   # merge `git log` output with $header
-  log_out=`git log --pretty=format:"%h %an %s" ${1}..${2}`
+  if [ -n "$urlformat" ]; then
+    log_out=`git log --pretty=format:"<${urlformat}|%h> %an: %s" ${1}..${2}`
+  else
+    log_out=`git log --pretty=format:"%h %an: %s" ${1}..${2}`
+  fi
+
   msg=$(echo -e "${header}\n${log_out}")
 
   # slack API uses \n substitution for newlines
@@ -178,10 +200,9 @@ function notify() {
 
   payload="$payload}"
 
-  # send to the campfire API
-  echo curl \
+  curl \
       -d "payload=$payload" \
-      "https://${org_name}.slack.com/services/hooks/incoming-webhook?token=$token" 2>&1
+      "https://${org_name}.slack.com/services/hooks/incoming-webhook?token=$token" >/dev/null
 }
 
 # MAIN PROGRAM
