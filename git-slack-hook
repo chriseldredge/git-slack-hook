@@ -1,0 +1,195 @@
+#!/bin/bash
+#
+# Campfire notification post-receive hook.
+# Author: Joe Miller (http://joemiller.me)
+#
+# Based on post-receive.irc by Mikael Fridh <frimik@gmail.com>
+# https://gist.github.com/1821358
+#
+# Settings needed:
+#  git config hooks.slack.token  "a23231..."
+#  git config hooks.slack.org-name "mycompany"
+#  git config hooks.slack.channel  "general"
+#
+# - The Slack token can be found in:
+#   https://mycompany.slack.com/services/new/incoming-webhook
+#
+
+max=5
+
+function help() {
+  echo "Required config settings:"
+  echo "  git config hooks.slack.token    'a23231...'"
+  echo "  git config hooks.slack.org-name 'mycompany'"
+  echo "  git config hooks.slack.channel  'general'"
+  echo "  git config hooks.slack.username 'git' #optional"
+}
+
+function notify() {
+  oldrev=$(git rev-parse $1)
+  newrev=$(git rev-parse $2)
+  refname="$3"
+
+  # --- Interpret
+  # 0000->1234 (create)
+  # 1234->2345 (update)
+  # 2345->0000 (delete)
+  if expr "$oldrev" : '0*$' >/dev/null
+  then
+    change_type="create"
+  else
+    if expr "$newrev" : '0*$' >/dev/null
+    then
+      change_type="delete"
+    else
+      change_type="update"
+    fi
+  fi
+
+  # --- Get the revision types
+  newrev_type=$(git cat-file -t $newrev 2> /dev/null)
+  oldrev_type=$(git cat-file -t "$oldrev" 2> /dev/null)
+  case "$change_type" in
+    create|update)
+      rev="$newrev"
+      rev_type="$newrev_type"
+      ;;
+    delete)
+      rev="$oldrev"
+      rev_type="$oldrev_type"
+      ;;
+  esac
+
+  # The revision type tells us what type the commit is, combined with
+  # the location of the ref we can decide between
+  #  - working branch
+  #  - tracking branch
+  #  - unannoted tag
+  #  - annotated tag
+  case "$refname","$rev_type" in
+    refs/tags/*,commit)
+      # un-annotated tag
+      refname_type="tag"
+      short_refname=${refname##refs/tags/}
+      ;;
+    refs/tags/*,tag)
+      # annotated tag
+      refname_type="annotated tag"
+      short_refname=${refname##refs/tags/}
+      # change recipients
+      if [ -n "$announcerecipients" ]; then
+        recipients="$announcerecipients"
+      fi
+      ;;
+    refs/heads/*,commit)
+      # branch
+      refname_type="branch"
+      short_refname=${refname##refs/heads/}
+      ;;
+    refs/remotes/*,commit)
+      # tracking branch
+      refname_type="tracking branch"
+      short_refname=${refname##refs/remotes/}
+      echo >&2 "*** Push-update of tracking branch, $refname"
+      echo >&2 "***  - no notification generated."
+      return 0
+      ;;
+    *)
+      # Anything else (is there anything else?)
+      echo >&2 "*** Unknown type of update to $refname ($rev_type)"
+      echo >&2 "***  - no notification generated"
+      return 0
+      ;;
+  esac
+
+  #channels=$(git config hooks.irc.channel)
+
+  # plural suffix, default "", changed to "s" if commits > 1
+  s=""
+
+  # Repo name, either Gitolite or normal repo.
+  if [ -n "$GL_REPO" ]; then
+    # it's a gitolite repo
+    repodir=$(basename `pwd`)
+    repo=$GL_REPO
+  else
+    repodir=$(basename `pwd`)
+    repo=${repodir%.git}
+  fi
+
+  repoprefix=$(git config hooks.irc.prefix || git config hooks.emailprefix || echo "[$repo]")
+
+  # Get the user information
+  # If $GL_USER is set we're running under gitolite.
+  if [ -n "$GL_USER" ]; then
+    user=$GL_USER
+  else
+    user=$USER
+  fi
+
+
+  case ${change_type} in
+    "create")
+      header="${repoprefix} $user ${change_type}d the $refname_type $short_refname."
+      ;;
+    "delete")
+      header="${repoprefix} $user ${change_type}d the $refname_type $short_refname."
+      ;;
+    "update")
+      num=$(git log --pretty=oneline ${1}..${2}|wc -l|tr -d ' ')
+      branch=${3/refs\/heads\//}
+
+      if [ ${num} -gt 1 ]; then
+        s="s"
+      fi
+
+      header="${repoprefix} $user pushed ${num} new commit${s} to ${branch}."
+      ;;
+    *)
+      # most weird ... this should never happen
+      echo >&2 "*** Unknown type of update to $refname ($rev_type)"
+      echo >&2 "***  - notifications will probably screw up."
+      ;;
+  esac
+
+  # merge `git log` output with $header
+  log_out=`git log --pretty=format:"%h %an %s" ${1}..${2}`
+  msg=$(echo -e "${header}\n${log_out}")
+
+  # slack API uses \n substitution for newlines
+  msg=$(echo "${msg}" | perl -p -e 's/\n/\\n/mg')
+
+  token=$(git config --get hooks.slack.token)
+  org_name=$(git config --get hooks.slack.org-name)
+  channel=$(git config --get hooks.slack.channel)
+  username=$(git config --get hooks.slack.username)
+
+  if [ -z "$token" ] || [ -z "$org_name" ] || [ -z "$channel" ]; then
+    echo "ERROR: config settings not found"
+    help
+    exit 1
+  fi
+
+  payload="{\"text\": \"${msg}\", \"channel\": \"#$channel\""
+
+  if [ -n "$username" ]; then
+    payload="$payload, \"username\": \"$username\""
+  fi
+
+  payload="$payload}"
+
+  # send to the campfire API
+  echo curl \
+      -d "payload=$payload" \
+      "https://${org_name}.slack.com/services/hooks/incoming-webhook?token=$token" 2>&1
+}
+
+# MAIN PROGRAM
+# Read all refs from stdin, notify slack for each
+while read line; do
+  set -- $line
+  notify $*
+  RET=$?
+done
+
+exit $RET
