@@ -1,5 +1,9 @@
 #!/bin/bash
 #
+# Slack (slack.com) notification post-receive hook.
+# 
+# Based on:
+# https://github.com/joemiller/git-hooks
 # Campfire notification post-receive hook.
 # Author: Joe Miller (http://joemiller.me)
 #
@@ -23,8 +27,10 @@ function help() {
   echo "  git config hooks.slack.org-name 'mycompany'"
   echo "  git config hooks.slack.channel  'general'"
   echo "  git config hooks.slack.username 'git' #optional"
+  echo "  git config hooks.slack.icon-url 'http://imgur/icon.png' #optional"
+  echo "  git config hooks.slack.icon-emoji ':twisted_rightwards_arrows:' #optional"
   echo "  git config hooks.slack.repos-root '/path/to/repos' #optional"
-  echo "  git config hooks.slack.changeset-url-pattern 'http://yourserver/%repo_path%/changeset/%revhash%' #optional"
+  echo "  git config hooks.slack.changeset-url-pattern 'http://yourserver/%repo_path%/changeset/%rev_hash%' #optional"
 }
 
 function notify() {
@@ -119,7 +125,7 @@ function notify() {
     repo=${repodir%.git}
   fi
 
-  repoprefix=$(git config hooks.irc.prefix || git config hooks.emailprefix || echo "[$repo]")
+  repoprefix=$(git config hooks.irc.prefix || git config hooks.emailprefix || echo "$repo")
 
   # Get the user information
   # If $GL_USER is set we're running under gitolite.
@@ -145,7 +151,7 @@ function notify() {
         s="s"
       fi
 
-      header="${repoprefix} $user pushed ${num} new commit${s} to ${branch}."
+      header="$user pushed ${num} new commit${s} to ${repoprefix}/${branch}."
       ;;
     *)
       # most weird ... this should never happen
@@ -163,7 +169,7 @@ function notify() {
       idx=`echo $reporoot | wc -c | tr -d ' '`
       repopath=`echo $PWD | cut -c$idx-`
 
-      urlformat=`echo $urlpattern | sed "s|%repo_path%|$repopath|g" | sed "s/%revhash%/%H/g"`
+      urlformat=`echo $urlpattern | sed "s|%repo_path%|$repopath|g" | sed "s/%rev_hash%/%H/g"`
     else
       echo >&2 "$PWD is not in $reporoot. Not creating hyperlinks."
     fi
@@ -171,9 +177,9 @@ function notify() {
 
   # merge `git log` output with $header
   if [ -n "$urlformat" ]; then
-    log_out=`git log --pretty=format:"<${urlformat}|%h> %an: %s" ${1}..${2}`
+    log_out=`git log --pretty=format:"%an - %s (<${urlformat}|%h>)" ${1}..${2}`
   else
-    log_out=`git log --pretty=format:"%h %an: %s" ${1}..${2}`
+    log_out=`git log --pretty=format:"%an - %s (%h)" ${1}..${2}`
   fi
 
   msg=$(echo -e "${header}\n${log_out}")
@@ -185,6 +191,8 @@ function notify() {
   org_name=$(git config --get hooks.slack.org-name)
   channel=$(git config --get hooks.slack.channel)
   username=$(git config --get hooks.slack.username)
+  iconurl=$(git config --get hooks.slack.icon-url)
+  iconemoji=$(git config --get hooks.slack.icon-emoji)
 
   if [ -z "$token" ] || [ -z "$org_name" ] || [ -z "$channel" ]; then
     echo "ERROR: config settings not found"
@@ -198,11 +206,23 @@ function notify() {
     payload="$payload, \"username\": \"$username\""
   fi
 
+  if [ -n "$iconurl" ]; then
+    payload="$payload, \"icon_url\": \"$iconurl\""
+  elif [ -n "$iconemoji" ]; then
+    payload="$payload, \"icon_emoji\": \"$iconemoji\""
+  fi
+
   payload="$payload}"
+
+  if [ -n "$DEBUG" ]; then
+    echo "POST https://${org_name}.slack.com/services/hooks/incoming-webhook?token=$token"
+    echo "payload=$payload"
+    return
+  fi
 
   curl \
       -d "payload=$payload" \
-      "https://${org_name}.slack.com/services/hooks/incoming-webhook?token=$token" >/dev/null
+      "https://${org_name}.slack.com/services/hooks/incoming-webhook?token=$token" >/dev/null 2>&1
 }
 
 # MAIN PROGRAM
