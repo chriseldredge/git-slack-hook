@@ -19,8 +19,6 @@
 #   https://mycompany.slack.com/services/new/incoming-webhook
 #
 
-max=5
-
 function help() {
   echo "Required config settings:"
   echo "  git config hooks.slack.token    'a23231...'"
@@ -138,10 +136,10 @@ function notify() {
 
   case ${change_type} in
     "create")
-      header="${repoprefix} $user ${change_type}d the $refname_type $short_refname."
+      header="${repoprefix} $user ${change_type}d the $refname_type $short_refname.\n"
       ;;
     "delete")
-      header="${repoprefix} $user ${change_type}d the $refname_type $short_refname."
+      header="${repoprefix} $user ${change_type}d the $refname_type $short_refname.\n"
       ;;
     "update")
       num=$(git log --pretty=oneline ${1}..${2}|wc -l|tr -d ' ')
@@ -151,7 +149,7 @@ function notify() {
         s="s"
       fi
 
-      header="$user pushed ${num} new commit${s} to ${repoprefix}/${branch}."
+      header=""
       ;;
     *)
       # most weird ... this should never happen
@@ -177,12 +175,12 @@ function notify() {
 
   # merge `git log` output with $header
   if [ -n "$urlformat" ]; then
-    log_out=`git log --pretty=format:"%an - %s (<${urlformat}|%h>)" ${1}..${2}`
+    log_out=`git log --pretty=format:"[${repoprefix}/${branch}] <${urlformat}|%h>: %s - %an" ${1}..${2}`
   else
-    log_out=`git log --pretty=format:"%an - %s (%h)" ${1}..${2}`
+    log_out=`git log --pretty=format:"[${repoprefix}/${branch}] %h: %s - %an" ${1}..${2}`
   fi
 
-  msg=$(echo -e "${header}\n${log_out}")
+  msg=$(echo -e "${header}${log_out}")
 
   # slack API uses \n substitution for newlines
   msg=$(echo "${msg}" | perl -p -e 's/\n/\\n/mg')
