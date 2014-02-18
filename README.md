@@ -1,7 +1,9 @@
-# Git receive hook for Slack
+# Git post-receive hook for Slack
 
 This is a bash script that posts a message into your slack.com channel
 when changes are pushed.
+
+Hook this script into post-receive for your git repositories.
 
 ## Configuration
 
@@ -37,6 +39,6 @@ When the following parameters are set, revision hashes will be
 turned into links to a web view of your repository.
 
     git config hooks.slack.repos_root '/path/to/repos'
-    git config hooks.slack.changeset-url-attern 'http://yourserver/%repo_path%/changeset/%rev_hash%'
+    git config hooks.slack.changeset-url-pattern 'http://yourserver/%repo_path%/changeset/%rev_hash%'
 
 For example, if your repository is in /usr/local/repos/myrepo, set repos_root to /usr/local/repos/ and set changeset_url_pattern to http://yourserver/%repo_path%/changeset/%rev_hash% or whatever.
