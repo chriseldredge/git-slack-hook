@@ -2,31 +2,28 @@
 #
 # Slack (slack.com) notification post-receive hook.
 # 
-# Based on:
-# https://github.com/joemiller/git-hooks
-# Campfire notification post-receive hook.
-# Author: Joe Miller (http://joemiller.me)
+# Based on: https://github.com/joemiller/git-hooks Campfire notification post-receive hook. Author: Joe Miller 
+# (http://joemiller.me)
 #
-# Based on post-receive.irc by Mikael Fridh <frimik@gmail.com>
-# https://gist.github.com/1821358
+# Based on post-receive.irc by Mikael Fridh <frimik@gmail.com> https://gist.github.com/1821358
 #
 # Settings needed:
-#  git config hooks.slack.token  "a23231..."
-#  git config hooks.slack.org-name "mycompany"
-#  git config hooks.slack.channel  "general"
+#  git config hooks.slack.token "a23231..." git config hooks.slack.org-name "mycompany" git config 
+#  hooks.slack.channel "general"
 #
 # - The Slack token can be found in:
 #   https://mycompany.slack.com/services/new/incoming-webhook
 #
-
 function help() {
   echo "Required config settings:"
-  echo "  git config hooks.slack.token    'a23231...'"
-  echo "  git config hooks.slack.org-name 'mycompany'"
-  echo "  git config hooks.slack.channel  'general'"
-  echo "  git config hooks.slack.username 'git' #optional"
-  echo "  git config hooks.slack.icon-url 'http://imgur/icon.png' #optional"
-  echo "  git config hooks.slack.icon-emoji ':twisted_rightwards_arrows:' #optional"
+  echo " git config hooks.slack.token 'a23231...'"
+  echo " git config hooks.slack.org-name 'mycompany'"
+  echo " git config hooks.slack.channel 'general'"
+  echo " git config hooks.slack.show-only-last-commit 'true' #optional"
+  echo " git config hooks.slack.username 'git' #optional"
+  echo " git config hooks.slack.icon-url 'http://imgur/icon.png' #optional"
+  echo " git config hooks.slack.icon-emoji ':twisted_rightwards_arrows:' #optional"
+  echo " git config hooks.slack.repo-nice-name 'MyRepo' #optional"
   echo "  git config hooks.slack.repos-root '/path/to/repos' #optional"
   echo "  git config hooks.slack.changeset-url-pattern 'http://yourserver/%repo_path%/changeset/%rev_hash%' #optional"
 }
@@ -123,7 +120,9 @@ function notify() {
     repo=${repodir%.git}
   fi
 
-  repoprefix=$(git config hooks.irc.prefix || git config hooks.emailprefix || echo "$repo")
+  repoprefix=$(git config hooks.slack.repo-nice-name || git config hooks.irc.prefix || git config hooks.emailprefix || echo "$repo")
+  onlylast=`git config --get hooks.slack.show-only-last-commit`
+  onlylast=$onlylast && [ -n "$onlylast" ]
 
   # Get the user information
   # If $GL_USER is set we're running under gitolite.
@@ -133,23 +132,28 @@ function notify() {
     user=$USER
   fi
 
-
   case ${change_type} in
     "create")
-      header="${repoprefix} $user ${change_type}d the $refname_type $short_refname.\n"
+      header="New ${refname_type} *${short_refname}* has been created in ${repoprefix}"
+      single_commit_suffix="commit"
       ;;
     "delete")
-      header="${repoprefix} $user ${change_type}d the $refname_type $short_refname.\n"
+      header="$(tr '[:lower:]' '[:upper:]' <<< ${refname_type:0:1})${refname_type:1} *$short_refname* has been deleted from ${repoprefix}"
+      single_commit_suffix="commit"
       ;;
     "update")
       num=$(git log --pretty=oneline ${1}..${2}|wc -l|tr -d ' ')
       branch=${3/refs\/heads\//}
 
       if [ ${num} -gt 1 ]; then
+        header="${num} new commits *pushed* to *${short_refname}* in ${repoprefix}"
+        single_commit_suffix="one"
         s="s"
+      else 
+        header="A new commit has been *pushed* to *${short_refname}* in ${repoprefix}"
+        single_commit_suffix="one"
       fi
 
-      header=""
       ;;
     *)
       # most weird ... this should never happen
@@ -158,32 +162,64 @@ function notify() {
       ;;
   esac
 
-  urlpattern=`git config --get hooks.slack.changeset-url-pattern`
-  reporoot=`git config --get hooks.slack.repos-root`
+  if $onlylast && [[ "${change_type}" != "delete" ]]; then
+    header="$header, showing last $single_commit_suffix:"
+  fi
 
-  urlformat=
-  if [ -n "$urlpattern" -a -n "$reporoot" ]; then
-    if [[ $PWD == ${reporoot}* ]]; then
-      idx=`echo $reporoot | wc -c | tr -d ' '`
-      repopath=`echo $PWD | cut -c$idx-`
 
-      urlformat=`echo $urlpattern | sed "s|%repo_path%|$repopath|g" | sed "s/%rev_hash%/%H/g"`
-    else
-      echo >&2 "$PWD is not in $reporoot. Not creating hyperlinks."
+  if [[ "${change_type}" != "delete" && "${refname_type}" == "branch" ]]; then
+    urlpattern=`git config --get hooks.slack.changeset-url-pattern`
+    reporoot=`git config --get hooks.slack.repos-root`
+
+    urlformat=
+    if [ -n "$urlpattern" -a -n "$reporoot" ]; then
+      if [[ $PWD == ${reporoot}* ]]; then
+        idx=`echo $reporoot | wc -c | tr -d ' '`
+        repopath=`echo $PWD | cut -c$idx-`
+
+        urlformat=`echo $urlpattern | sed "s|%repo_path%|$repopath|g" | sed "s/%rev_hash%/%H/g"`
+      else
+        echo >&2 "$PWD is not in $reporoot. Not creating hyperlinks."
+      fi
     fi
+
+    formattedurl=""
+    if [ -n "$urlformat" ]; then
+      formattedurl="<${urlformat}|%h> "
+    fi
+
+
+    nl="\\\\n"
+    
+    if [[ "${change_type}" == "update" ]]; then
+      start="${1}"
+    else
+      start="HEAD"
+    fi
+
+    end="${2}"
+
+
+    # merge `git log` output with $header
+    if $onlylast; then
+      log_out=`git log --pretty=format:"{\"title\":\"%cN\",\"value\":\"${formattedurl}%s\",\"short\":false}," -n 1 ${start}..${end}`
+    else 
+      log_out=`git log --pretty=format:"{\"title\":\"%cN\",\"value\":\"${formattedurl}%s\",\"short\":false},"  ${start}..${end}`
+    fi
+
+    fields=${log_out%?}
+
+    attachments="[{ \"fallback\" : \"${header}\", \"color\" : \"good\", \"fields\" : [${fields}]}]"
   fi
 
-  # merge `git log` output with $header
-  if [ -n "$urlformat" ]; then
-    log_out=`git log --pretty=format:"[${repoprefix}/${branch}] <${urlformat}|%h>: %s - %an" ${1}..${2}`
+  if [ -n "${attachments}" ] && [[ "${attachments}" != "" ]]; then
+    msg=$(echo -e "\"text\":\"${header}\", \"attachments\" : $attachments")
   else
-    log_out=`git log --pretty=format:"[${repoprefix}/${branch}] %h: %s - %an" ${1}..${2}`
+    msg=$(echo -e "\"text\":\"${header}\"")
   fi
-
-  msg=$(echo -e "${header}${log_out}")
-
+  
   # slack API uses \n substitution for newlines
-  msg=$(echo "${msg}" | perl -p -e 's/\n/\\n/mg')
+  # msg=$(echo "${msg}" | perl -p -e 's/\+/&#43;/mg')
 
   token=$(git config --get hooks.slack.token)
   org_name=$(git config --get hooks.slack.org-name)
@@ -198,7 +234,7 @@ function notify() {
     exit 1
   fi
 
-  payload="{\"text\": \"${msg}\", \"channel\": \"#$channel\""
+  payload="{${msg}, \"channel\": \"#$channel\""
 
   if [ -n "$username" ]; then
     payload="$payload, \"username\": \"$username\""
@@ -220,7 +256,7 @@ function notify() {
 
   curl \
       -d "payload=$payload" \
-      "https://${org_name}.slack.com/services/hooks/incoming-webhook?token=$token" >/dev/null 2>&1
+      "https://${org_name}.slack.com/services/hooks/incoming-webhook?token=$token"
 }
 
 # MAIN PROGRAM
