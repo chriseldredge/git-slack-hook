@@ -32,6 +32,16 @@ Specifies an icon to display in Slack instead of the default.
 
 Specifies an emoji icon to display in Slack instead of the default.
 
+    git config hooks.slack.repo-nice-name 'My Awesome Repository'
+
+Specifies a repository nice name that will be shown in messages.
+
+    git config hooks.slack.show-only-last-commit true
+
+Specifies if you want to show only last commits (or all) when pushing
+multiple commits
+
+
 
 ## Linking to Changesets
 
