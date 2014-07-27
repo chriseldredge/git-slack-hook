@@ -254,9 +254,10 @@ function notify() {
     return
   fi
 
-  curl \
+  curl -s \
       -d "payload=$payload" \
-      "https://${org_name}.slack.com/services/hooks/incoming-webhook?token=$token"
+      "https://${org_name}.slack.com/services/hooks/incoming-webhook?token=$token" \
+      >/dev/null
 }
 
 # MAIN PROGRAM
