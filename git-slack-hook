@@ -262,10 +262,12 @@ function notify() {
 
 # MAIN PROGRAM
 # Read all refs from stdin, notify slack for each
-while read line; do
-  set -- $line
-  notify $*
-  RET=$?
-done
+if read -t 0; then
+  while read line; do
+    set -- $line
+    notify $*
+    RET=$?
+  done
 
-exit $RET
+  exit $RET
+fi
