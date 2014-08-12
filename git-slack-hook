@@ -26,6 +26,8 @@ function help() {
   echo " git config hooks.slack.repo-nice-name 'MyRepo' #optional"
   echo "  git config hooks.slack.repos-root '/path/to/repos' #optional"
   echo "  git config hooks.slack.changeset-url-pattern 'http://yourserver/%repo_path%/changeset/%rev_hash%' #optional"
+  echo "  git config hooks.slack.github-repo 'myname/my-repo' #optional"
+  echo "  git config hooks.slack.bitbucket-repo 'myname/my-repo' #optional"
 }
 
 function notify() {
@@ -124,6 +126,9 @@ function notify() {
   onlylast=`git config --get hooks.slack.show-only-last-commit`
   onlylast=$onlylast && [ -n "$onlylast" ]
 
+  ghrepo=`git config --get hooks.slack.github-repo`
+  bbrepo=`git config --get hooks.slack.bitbucket-repo`
+
   # Get the user information
   # If $GL_USER is set we're running under gitolite.
   if [ -n "$GL_USER" ]; then
@@ -145,14 +150,32 @@ function notify() {
       num=$(git log --pretty=oneline ${1}..${2}|wc -l|tr -d ' ')
       branch=${3/refs\/heads\//}
 
+      single_commit_suffix="one"
       if [ ${num} -gt 1 ]; then
-        header="${num} new commits *pushed* to *${short_refname}* in ${repoprefix}"
-        single_commit_suffix="one"
+        header_commit_prefix="${num} new commits"
         s="s"
       else 
-        header="A new commit has been *pushed* to *${short_refname}* in ${repoprefix}"
-        single_commit_suffix="one"
+        header_commit_prefix="A new commit has been"
       fi
+      
+      if [ -n "$ghrepo" ]; then
+        #GitHub Link
+        if [ ${num} -gt 1 ]; then
+          gh_rev_url="https://github.com/${ghrepo}/compare/${1}...${2}"
+        else
+          gh_rev_url="https://github.com/${ghrepo}/commit/${2}"
+        fi
+        header_commit_prefix="<${gh_rev_url}|${header_commit_prefix}>"
+      elif [ -n "$bbrepo" ]; then
+        #BitBucket Link
+        if [ ${num} -gt 1 ]; then
+          bb_rev_url="https://bitbucket.org/${bbrepo}/branches/compare/${2}..${1}"
+        else
+          bb_rev_url="https://bitbucket.org/${bbrepo}/commits/${2}"
+        fi
+        header_commit_prefix="<${bb_rev_url}|${header_commit_prefix}>"
+      fi
+      header="${header_commit_prefix} *pushed* to *${short_refname}* in ${repoprefix}"
 
       ;;
     *)
@@ -170,7 +193,7 @@ function notify() {
   if [[ "${change_type}" != "delete" && "${refname_type}" == "branch" ]]; then
     urlpattern=`git config --get hooks.slack.changeset-url-pattern`
     reporoot=`git config --get hooks.slack.repos-root`
-
+    
     urlformat=
     if [ -n "$urlpattern" -a -n "$reporoot" ]; then
       if [[ $PWD == ${reporoot}* ]]; then
@@ -178,14 +201,20 @@ function notify() {
         repopath=`echo $PWD | cut -c$idx-`
 
         urlformat=`echo $urlpattern | sed "s|%repo_path%|$repopath|g" | sed "s/%rev_hash%/%H/g"`
+      elif [ -n "$ghrepo" ]; then
+        urlformat="https://github.com/$ghrepo/commit/%H"
+      elif [ -n "$bbrepo" ]; then
+        urlformat="https://bitbucket.org/$bbrepo/commits/%H"
       else
-        echo >&2 "$PWD is not in $reporoot. Not creating hyperlinks."
+        echo >&2 "$PWD is not in $reporoot and there are no GitHub or BitBucket repository configured. Not creating hyperlinks."
       fi
     fi
 
     formattedurl=""
     if [ -n "$urlformat" ]; then
-      formattedurl="<${urlformat}|%h> "
+      formattedurl="<${urlformat}|%h> - "
+    else
+      formattedurl="%h - "
     fi
 
 
