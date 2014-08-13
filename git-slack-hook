@@ -139,7 +139,7 @@ function notify() {
 
   case ${change_type} in
     "create")
-      header="New ${refname_type} *${short_refname}* has been created in ${repoprefix}"
+      header="New ${refname_type} *${short_refname}* has been created in *${repoprefix}*"
       single_commit_suffix="commit"
       ;;
     "delete")
@@ -175,7 +175,7 @@ function notify() {
         fi
         header_commit_prefix="<${bb_rev_url}|${header_commit_prefix}>"
       fi
-      header="${header_commit_prefix} *pushed* to *${short_refname}* in ${repoprefix}"
+      header="${header_commit_prefix} pushed to *${short_refname}* in *${repoprefix}*"
 
       ;;
     *)
@@ -201,13 +201,13 @@ function notify() {
         repopath=`echo $PWD | cut -c$idx-`
 
         urlformat=`echo $urlpattern | sed "s|%repo_path%|$repopath|g" | sed "s/%rev_hash%/%H/g"`
-      elif [ -n "$ghrepo" ]; then
-        urlformat="https://github.com/$ghrepo/commit/%H"
-      elif [ -n "$bbrepo" ]; then
-        urlformat="https://bitbucket.org/$bbrepo/commits/%H"
       else
-        echo >&2 "$PWD is not in $reporoot and there are no GitHub or BitBucket repository configured. Not creating hyperlinks."
+        echo >&2 "$PWD is not in $reporoot. Not creating hyperlinks."
       fi
+    elif [ -n "$ghrepo" ]; then
+	  urlformat="https://github.com/$ghrepo/commit/%H"
+    elif [ -n "$bbrepo" ]; then
+	  urlformat="https://bitbucket.org/$bbrepo/commits/%H"
     fi
 
     formattedurl=""
