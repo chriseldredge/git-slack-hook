@@ -174,9 +174,13 @@ function notify() {
     urlformat=
     if [ -n "$urlpattern" -a -n "$reporoot" ]; then
       if [[ $PWD == ${reporoot}* ]]; then
+        repopath=$PWD
+        base=`basename $PWD`
+        if [ "$base" == ".git" ]; then
+          repopath=`dirname $repopath`
+        fi
         idx=`echo $reporoot | wc -c | tr -d ' '`
-        repopath=`echo $PWD | cut -c$idx-`
-
+        repopath=`echo $repopath | cut -c$idx-`
         urlformat=`echo $urlpattern | sed "s|%repo_path%|$repopath|g" | sed "s/%rev_hash%/%H/g"`
       else
         echo >&2 "$PWD is not in $reporoot. Not creating hyperlinks."
