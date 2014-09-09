@@ -13,9 +13,9 @@ Add an Incoming WebHooks integration in your Slack by going to e.g.
 
 Make note of the token in the URL.
 
-    git config hooks.slack.token    'D7qgpovcZp3pQ4VmlsYiTIdZ'"
-    git config hooks.slack.org-name 'yourcompany'"
-    git config hooks.slack.channel  'general'"
+    git config hooks.slack.token    'D7qgpovcZp3pQ4VmlsYiTIdZ'
+    git config hooks.slack.org-name 'yourcompany'
+    git config hooks.slack.channel  'general'
 
 ## Optional
 
