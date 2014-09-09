@@ -42,7 +42,6 @@ Specifies if you want to show only last commits (or all) when pushing
 multiple commits
 
 
-
 ## Linking to Changesets
 
 When the following parameters are set, revision hashes will be
@@ -52,3 +51,7 @@ turned into links to a web view of your repository.
     git config hooks.slack.changeset-url-pattern 'http://yourserver/%repo_path%/changeset/%rev_hash%'
 
 For example, if your repository is in /usr/local/repos/myrepo, set repos_root to /usr/local/repos/ and set changeset_url_pattern to http://yourserver/%repo_path%/changeset/%rev_hash% or whatever.
+
+Links can also be created that summarize a list of commits:
+
+    git config hooks.slack.compare-url-pattern 'http://yourserver/%repo_path%/compare/%old_rev_hash%..%new_rev_hash%'

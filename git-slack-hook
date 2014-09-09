@@ -24,8 +24,9 @@ function help() {
   echo " git config hooks.slack.icon-url 'http://imgur/icon.png' #optional"
   echo " git config hooks.slack.icon-emoji ':twisted_rightwards_arrows:' #optional"
   echo " git config hooks.slack.repo-nice-name 'MyRepo' #optional"
-  echo "  git config hooks.slack.repos-root '/path/to/repos' #optional"
-  echo "  git config hooks.slack.changeset-url-pattern 'http://yourserver/%repo_path%/changeset/%rev_hash%' #optional"
+  echo " git config hooks.slack.repos-root '/path/to/repos' #optional"
+  echo " git config hooks.slack.changeset-url-pattern 'http://yourserver/%repo_path%/changeset/%rev_hash%' #optional"
+  echo " git config hooks.slack.compare-url-pattern 'http://yourserver/%repo_path%/changeset/%old_rev_hash%..%new_rev_hash%' #optional"
 }
 
 function notify() {
@@ -168,11 +169,12 @@ function notify() {
 
 
   if [[ "${change_type}" != "delete" && "${refname_type}" == "branch" ]]; then
-    urlpattern=`git config --get hooks.slack.changeset-url-pattern`
+    changeseturlpattern=`git config --get hooks.slack.changeset-url-pattern`
+    compareurlpattern=`git config --get hooks.slack.compare-url-pattern`
     reporoot=`git config --get hooks.slack.repos-root`
 
     urlformat=
-    if [ -n "$urlpattern" -a -n "$reporoot" ]; then
+    if [ -n "$changeseturlpattern" -a -n "$reporoot" ]; then
       if [[ $PWD == ${reporoot}* ]]; then
         repopath=$PWD
         base=`basename $PWD`
@@ -181,7 +183,12 @@ function notify() {
         fi
         idx=`echo $reporoot | wc -c | tr -d ' '`
         repopath=`echo $repopath | cut -c$idx-`
-        urlformat=`echo $urlpattern | sed "s|%repo_path%|$repopath|g" | sed "s/%rev_hash%/%H/g"`
+        urlformat=`echo $changeseturlpattern | sed "s|%repo_path%|$repopath|g" | sed "s/%rev_hash%/%H/g"`
+
+        if [ -n "$compareurlpattern" ]; then
+          comparelink=`echo $compareurlpattern | sed "s|%repo_path%|$repopath|g"  | sed "s|%old_rev_hash%|$oldrev|g" | sed "s|%new_rev_hash%|$newrev|g"`
+          header=`echo $header | sed -e "s|\([a-zA-Z0-9]\{1,\} new commit[s]\{0,1\}\)|\<$comparelink\|\\1\>|"`
+        fi
       else
         echo >&2 "$PWD is not in $reporoot. Not creating hyperlinks."
       fi
