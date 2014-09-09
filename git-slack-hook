@@ -118,6 +118,10 @@ function notify() {
     repo=$GL_REPO
   else
     repodir=$(basename `pwd`)
+    if [ "$repodir" == ".git" ]; then
+      repodir=`dirname $PWD`
+      repodir=`basename $repodir`
+    fi
     repo=${repodir%.git}
   fi
 
