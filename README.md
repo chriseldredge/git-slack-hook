@@ -5,6 +5,18 @@ when changes are pushed.
 
 Hook this script into post-receive for your git repositories.
 
+## How to Install
+
+Note: some git repositories may be "bare". You'll know if your repo is bare or not by checking for a `.git` folder where your repo lives.
+
+Download [git-slack-hook](git-slack-hook) onto the server which hosts your git repo.
+
+For bare repos, copy/rename it as `/path/to/your/repo/hooks/post-receive`.
+
+For normal/non-bare repos, copy/rename it as `/path/to/your/repo/.git/hooks/post-receive`.
+
+Finally, `chmod +x post-receive` to allow the script to be executed.
+
 ## Configuration
 
 Add an Incoming WebHooks integration in your Slack by going to e.g.
