@@ -9,7 +9,7 @@ Hook this script into post-receive for your git repositories.
 
 Note: some git repositories may be "bare". You'll know if your repo is bare or not by checking for a `.git` folder where your repo lives.
 
-Download [git-slack-hook](git-slack-hook) onto the server which hosts your git repo.
+Download [git-slack-hook](https://raw.githubusercontent.com/chriseldredge/git-slack-hook/master/git-slack-hook) onto the server which hosts your git repo.
 
 For bare repos, copy/rename it as `/path/to/your/repo/hooks/post-receive`.
 
