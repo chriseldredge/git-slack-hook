@@ -14,7 +14,7 @@ Download [git-slack-hook](https://raw.githubusercontent.com/chriseldredge/git-sl
 For bare repos, copy/rename it as `/path/to/your/repo/hooks/post-receive`.
 
 For normal/non-bare repos, copy/rename it as `/path/to/your/repo/.git/hooks/post-receive`.
-
+s
 Finally, `chmod +x post-receive` to allow the script to be executed.
 
 ## Configuration
@@ -33,7 +33,7 @@ Make note of the token in the URL.
 
     git config hooks.slack.username 'git'
 
-Specifies a username to post as. If not specifid, the default name
+Specifies a username to post as. If not specified, the default name
 `incoming-webhook` will be used.
 
     git config hooks.slack.icon-url 'https://example.com/icon.png'
