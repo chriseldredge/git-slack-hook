@@ -225,7 +225,7 @@ function notify() {
     log_out=$( git log --pretty=format:"%cN;;;;;${formattedurl}%s" $countarg ${start}..${end} \
              | sed -e 's/\\/\\\\/g' \
              | sed -e 's/"/\\"/g' \
-             | sed -e 's/\(.*\);;;;;\(.*\)/\{"title":"\1","value":"\2","short":false\}/' )
+             | sed -e 's/\(.*\);;;;;\(.*\)/{"title":"\1","value":"\2","short":false},/' )
 
     fields=${log_out%?}
 
