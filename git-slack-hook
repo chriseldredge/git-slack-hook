@@ -1,14 +1,14 @@
 #!/bin/bash
 #
 # Slack (slack.com) notification post-receive hook.
-# 
-# Based on: https://github.com/joemiller/git-hooks Campfire notification post-receive hook. Author: Joe Miller 
+#
+# Based on: https://github.com/joemiller/git-hooks Campfire notification post-receive hook. Author: Joe Miller
 # (http://joemiller.me)
 #
 # Based on post-receive.irc by Mikael Fridh <frimik@gmail.com> https://gist.github.com/1821358
 #
 # Settings needed:
-#  git config hooks.slack.token "a23231..." git config hooks.slack.org-name "mycompany" git config 
+#  git config hooks.slack.token "a23231..." git config hooks.slack.org-name "mycompany" git config
 #  hooks.slack.channel "general"
 #
 # - The Slack token can be found in:
@@ -154,7 +154,7 @@ function notify() {
         header="${num} new commits *pushed* to *${short_refname}* in ${repoprefix}"
         single_commit_suffix="one"
         s="s"
-      else 
+      else
         header="A new commit has been *pushed* to *${short_refname}* in ${repoprefix}"
         single_commit_suffix="one"
       fi
@@ -205,7 +205,7 @@ function notify() {
 
 
     nl="\\\\n"
-    
+
     if [[ "${change_type}" == "update" ]]; then
       start="${1}"
     else
@@ -218,7 +218,7 @@ function notify() {
     # merge `git log` output with $header
     if $onlylast; then
       log_out=`git log --pretty=format:"{\"title\":\"%cN\",\"value\":\"${formattedurl}%s\",\"short\":false}," -n 1 ${start}..${end}`
-    else 
+    else
       log_out=`git log --pretty=format:"{\"title\":\"%cN\",\"value\":\"${formattedurl}%s\",\"short\":false},"  ${start}..${end}`
     fi
 
@@ -232,7 +232,7 @@ function notify() {
   else
     msg=$(echo -e "\"text\":\"${header}\"")
   fi
-  
+
   # slack API uses \n substitution for newlines
   # msg=$(echo "${msg}" | perl -p -e 's/\+/&#43;/mg')
 
