@@ -8,11 +8,12 @@
 # Based on post-receive.irc by Mikael Fridh <frimik@gmail.com> https://gist.github.com/1821358
 #
 # Settings needed:
-#  git config hooks.slack.token "a23231..." git config hooks.slack.org-name "mycompany" git config
-#  hooks.slack.channel "general"
+#  git config hooks.slack.token "a23231..."
+#  git config hooks.slack.org-name "mycompany"
+#  git config hooks.slack.channel "general"
 #
 # - The Slack token can be found in:
-#   https://mycompany.slack.com/services/new/incoming-webhook
+#   https://my.slack.com/services/new/incoming-webhook
 #
 function help() {
   echo "Required config settings:"
