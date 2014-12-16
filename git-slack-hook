@@ -1,23 +1,22 @@
 #!/bin/bash
 #
 # Slack (slack.com) notification post-receive hook.
-# 
-# Based on: https://github.com/joemiller/git-hooks Campfire notification post-receive hook. Author: Joe Miller 
+#
+# Based on: https://github.com/joemiller/git-hooks Campfire notification post-receive hook. Author: Joe Miller
 # (http://joemiller.me)
 #
 # Based on post-receive.irc by Mikael Fridh <frimik@gmail.com> https://gist.github.com/1821358
 #
 # Settings needed:
-#  git config hooks.slack.token "a23231..." git config hooks.slack.org-name "mycompany" git config 
-#  hooks.slack.channel "general"
+#  git config hooks.slack.webhook-url "https://hooks.slack.com/services/..."
+#  git config hooks.slack.channel "general"
 #
-# - The Slack token can be found in:
-#   https://mycompany.slack.com/services/new/incoming-webhook
+# - The Slack webhook URL can be found in:
+#   https://my.slack.com/services/new/incoming-webhook
 #
 function help() {
   echo "Required config settings:"
-  echo " git config hooks.slack.token 'a23231...'"
-  echo " git config hooks.slack.org-name 'mycompany'"
+  echo " git config hooks.slack.webhook-url 'https://hooks.slack.com/services/...'"
   echo " git config hooks.slack.channel 'general'"
   echo " git config hooks.slack.show-only-last-commit 'true' #optional"
   echo " git config hooks.slack.username 'git' #optional"
@@ -154,7 +153,7 @@ function notify() {
         header="${num} new commits *pushed* to *${short_refname}* in ${repoprefix}"
         single_commit_suffix="one"
         s="s"
-      else 
+      else
         header="A new commit has been *pushed* to *${short_refname}* in ${repoprefix}"
         single_commit_suffix="one"
       fi
@@ -205,7 +204,7 @@ function notify() {
 
 
     nl="\\\\n"
-    
+
     if [[ "${change_type}" == "update" ]]; then
       start="${1}"
     else
@@ -218,7 +217,7 @@ function notify() {
     # merge `git log` output with $header
     if $onlylast; then
       log_out=`git log --pretty=format:"{\"title\":\"%cN\",\"value\":\"${formattedurl}%s\",\"short\":false}," -n 1 ${start}..${end}`
-    else 
+    else
       log_out=`git log --pretty=format:"{\"title\":\"%cN\",\"value\":\"${formattedurl}%s\",\"short\":false},"  ${start}..${end}`
     fi
 
@@ -232,18 +231,17 @@ function notify() {
   else
     msg=$(echo -e "\"text\":\"${header}\"")
   fi
-  
+
   # slack API uses \n substitution for newlines
   # msg=$(echo "${msg}" | perl -p -e 's/\+/&#43;/mg')
 
-  token=$(git config --get hooks.slack.token)
-  org_name=$(git config --get hooks.slack.org-name)
+  webhook_url=$(git config --get hooks.slack.webhook-url)
   channel=$(git config --get hooks.slack.channel)
   username=$(git config --get hooks.slack.username)
   iconurl=$(git config --get hooks.slack.icon-url)
   iconemoji=$(git config --get hooks.slack.icon-emoji)
 
-  if [ -z "$token" ] || [ -z "$org_name" ] || [ -z "$channel" ]; then
+  if [ -z "$webhook_url" ] || [ -z "$channel" ]; then
     echo "ERROR: config settings not found"
     help
     exit 1
@@ -264,14 +262,14 @@ function notify() {
   payload="$payload}"
 
   if [ -n "$DEBUG" ]; then
-    echo "POST https://${org_name}.slack.com/services/hooks/incoming-webhook?token=$token"
+    echo "POST $webhook_url"
     echo "payload=$payload"
     return
   fi
 
   curl -s \
       -d "payload=$payload" \
-      "https://${org_name}.slack.com/services/hooks/incoming-webhook?token=$token" \
+      "$webhook_url" \
       >/dev/null
 }
 
