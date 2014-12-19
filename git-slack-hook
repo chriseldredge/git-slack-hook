@@ -216,10 +216,16 @@ function notify() {
 
     # merge `git log` output with $header
     if $onlylast; then
-      log_out=`git log --pretty=format:"{\"title\":\"%cN\",\"value\":\"${formattedurl}%s\",\"short\":false}," -n 1 ${start}..${end}`
+      countarg="-n 1"
     else
-      log_out=`git log --pretty=format:"{\"title\":\"%cN\",\"value\":\"${formattedurl}%s\",\"short\":false},"  ${start}..${end}`
+      countarg=""
     fi
+
+    # Process the log and escape double quotes; assuming for now that committer names don't have five semicolons in them
+    log_out=$( git log --pretty=format:"%cN;;;;;${formattedurl}%s" $countarg ${start}..${end} \
+             | sed -e 's/\\/\\\\/g' \
+             | sed -e 's/"/\\"/g' \
+             | sed -e 's/\(.*\);;;;;\(.*\)/{"title":"\1","value":"\2","short":false},/' )
 
     fields=${log_out%?}
 
