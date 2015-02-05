@@ -49,6 +49,10 @@ Specifies a repository nice name that will be shown in messages.
 
 Specifies if you want to show only last commits (or all) when pushing multiple commits
 
+    git config hooks.slack.branch-regexp regexp
+
+Specifies if you want to send only certain branches
+
 ## Linking to Changesets
 
 When the following parameters are set, revision hashes will be turned into links to a web view of your repository.

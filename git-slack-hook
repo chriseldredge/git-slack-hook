@@ -26,6 +26,7 @@ function help() {
   echo " git config hooks.slack.repos-root '/path/to/repos' #optional"
   echo " git config hooks.slack.changeset-url-pattern 'http://yourserver/%repo_path%/changeset/%rev_hash%' #optional"
   echo " git config hooks.slack.compare-url-pattern 'http://yourserver/%repo_path%/changeset/%old_rev_hash%..%new_rev_hash%' #optional"
+  echo " git config hooks.slack.branch-regexp 'regexp'  #optional"
 }
 
 function notify() {
@@ -104,6 +105,13 @@ function notify() {
       return 0
       ;;
   esac
+
+  branchregexp=$(git config --get hooks.slack.branch-regexp)
+  if [ -n "$branchregexp" ]; then
+    if [[ ! $short_refname =~ $branchregexp ]]; then
+      exit 0;
+    fi
+  fi
 
   #channels=$(git config hooks.irc.channel)
 
