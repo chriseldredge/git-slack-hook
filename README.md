@@ -47,7 +47,11 @@ Specifies a repository nice name that will be shown in messages.
 
     git config hooks.slack.show-only-last-commit true
 
-Specifies if you want to show only last commits (or all) when pushing multiple commits
+Specifies whether you want to show only the last commit (or all) when pushing multiple commits.
+
+    git config hooks.slack.show-full-commit true
+
+Specifies whether you want to show the body of the commit message as well as the title.
 
 ## Linking to Changesets
 
