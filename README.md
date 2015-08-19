@@ -19,15 +19,23 @@ Finally, `chmod +x post-receive` to allow the script to be executed.
 ## Configuration
 
 Add an Incoming WebHooks integration in your Slack by going to e.g.
-    
+
     https://my.slack.com/services/new/incoming-webhook
 
 Make note of the webhook URL.
 
     git config hooks.slack.webhook-url 'https://hooks.slack.com/services/...'
-    git config hooks.slack.channel     'general'
+    git config hooks.slack.channel     '#general'
 
 ## Optional
+
+    git config hooks.slack.channel '#general'
+
+    #channelname - post to channel
+    @username - direct message to user
+    groupname - post to group
+
+Specifies a channel to post in Slack instead of the default.
 
     git config hooks.slack.username 'git'
 
