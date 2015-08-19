@@ -25,15 +25,14 @@ Add an Incoming WebHooks integration in your Slack by going to e.g.
 Make note of the webhook URL.
 
     git config hooks.slack.webhook-url 'https://hooks.slack.com/services/...'
-    git config hooks.slack.channel     '#general'
 
 ## Optional
 
     git config hooks.slack.channel '#general'
 
-    #channelname - post to channel
-    @username - direct message to user
-    groupname - post to group
+        '#channelname' - post to channel
+        '@username' - direct message to user
+        'groupname' - post to group
 
 Specifies a channel to post in Slack instead of the default.
 
