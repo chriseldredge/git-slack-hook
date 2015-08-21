@@ -247,13 +247,17 @@ function notify() {
   iconurl=$(git config --get hooks.slack.icon-url)
   iconemoji=$(git config --get hooks.slack.icon-emoji)
 
-  if [ -z "$webhook_url" ] || [ -z "$channel" ]; then
+  if [ -z "$webhook_url" ]; then
     echo "ERROR: config settings not found"
     help
     exit 1
   fi
 
-  payload="{${msg}, \"channel\": \"#$channel\""
+  payload="{${msg}"
+
+  if [ -n "$channel" ]; then
+    payload="$payload, \"channel\": \"$channel\""
+  fi
 
   if [ -n "$username" ]; then
     payload="$payload, \"username\": \"$username\""
