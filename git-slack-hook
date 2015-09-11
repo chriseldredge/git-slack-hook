@@ -18,7 +18,8 @@ function help() {
   echo "Required config settings:"
   echo " git config hooks.slack.webhook-url 'https://hooks.slack.com/services/...'"
   echo " git config hooks.slack.channel 'general'"
-  echo " git config hooks.slack.show-only-last-commit 'true' #optional"
+  echo " git config hooks.slack.show-only-last-commit true #optional"
+  echo " git config hooks.slack.show-full-commit true #optional"
   echo " git config hooks.slack.username 'git' #optional"
   echo " git config hooks.slack.icon-url 'http://imgur/icon.png' #optional"
   echo " git config hooks.slack.icon-emoji ':twisted_rightwards_arrows:' #optional"
@@ -131,6 +132,7 @@ function notify() {
   repoprefix=$(git config hooks.slack.repo-nice-name || git config hooks.irc.prefix || git config hooks.emailprefix || echo "$repo")
   onlylast=$(git config --get hooks.slack.show-only-last-commit)
   onlylast=$onlylast && [ -n "$onlylast" ]
+  fullcommit=`git config --get hooks.slack.show-full-commit`
 
   # Get the user information
   # If $GL_USER is set we're running under gitolite.
@@ -225,8 +227,16 @@ function notify() {
       countarg=""
     fi
 
+    # show the full commit message
+    if [ "$fullcommit" == "true" ]; then
+      commitformat="%s%n%n%b"
+    else
+      commitformat="%s"
+    fi
+
     # Process the log and escape double quotes; assuming for now that committer names don't have five semicolons in them
-    log_out=$( git log --pretty=format:"%cN;;;;;${formattedurl}%s" $countarg ${start}..${end} \
+    log_out=$( git log --pretty=format:"%cN;;;;;${formattedurl}${commitformat}" $countarg ${start}..${end} \
+             | sed ':a;N;$!ba;s/\n/\\n/g' \
              | sed -e 's/\\/\\\\/g' \
              | sed -e 's/"/\\"/g' \
              | sed -e 's/\(.*\);;;;;\(.*\)/{"title":"\1","value":"\2","short":false},/' )
@@ -285,6 +295,7 @@ function notify() {
       -d "payload=$payload" \
       "$webhook_url" \
       >/dev/null
+
 }
 
 # MAIN PROGRAM
