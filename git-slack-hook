@@ -28,6 +28,10 @@ function help() {
   echo " git config hooks.slack.compare-url-pattern 'http://yourserver/%repo_path%/changeset/%old_rev_hash%..%new_rev_hash%' #optional"
 }
 
+function replace_variables() {
+	sed "s|%repo_path%|$repopath|g;s|%old_rev_hash%|$oldrev|g;s|%new_rev_hash%|$newrev|g;s|%rev_hash%|$newrev|g;s|%repo_prefix%|$repoprefix|g"
+}
+
 function notify() {
   oldrev=$(git rev-parse $1)
   newrev=$(git rev-parse $2)
@@ -186,10 +190,10 @@ function notify() {
         fi
         idx=$(echo $reporoot | wc -c | tr -d ' ')
         repopath=$(echo $repopath | cut -c$idx-)
-        urlformat=`echo $changeseturlpattern | sed "s|%repo_path%|$repopath|g" | sed "s/%rev_hash%/%H/g"`
+        urlformat=$(echo $changeseturlpattern | replace_variables)
 
         if [ -n "$compareurlpattern" ]; then
-          comparelink=`echo $compareurlpattern | sed "s|%repo_path%|$repopath|g"  | sed "s|%old_rev_hash%|$oldrev|g" | sed "s|%new_rev_hash%|$newrev|g"`
+          comparelink=$(echo $compareurlpattern | replace_variables)
           header=$(echo $header | sed -e "s|\([a-zA-Z0-9]\{1,\} new commit[s]\{0,1\}\)|\<$comparelink\|\\1\>|")
         fi
       else
