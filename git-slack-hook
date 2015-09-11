@@ -113,19 +113,19 @@ function notify() {
   # Repo name, either Gitolite or normal repo.
   if [ -n "$GL_REPO" ]; then
     # it's a gitolite repo
-    repodir=$(basename `pwd`)
+    repodir=$(basename $(pwd))
     repo=$GL_REPO
   else
-    repodir=$(basename `pwd`)
+    repodir=$(basename $(pwd))
     if [ "$repodir" == ".git" ]; then
-      repodir=`dirname $PWD`
-      repodir=`basename $repodir`
+      repodir=$(dirname $PWD)
+      repodir=$(basename $repodir)
     fi
     repo=${repodir%.git}
   fi
 
   repoprefix=$(git config hooks.slack.repo-nice-name || git config hooks.irc.prefix || git config hooks.emailprefix || echo "$repo")
-  onlylast=`git config --get hooks.slack.show-only-last-commit`
+  onlylast=$(git config --get hooks.slack.show-only-last-commit)
   onlylast=$onlylast && [ -n "$onlylast" ]
 
   # Get the user information
@@ -172,25 +172,25 @@ function notify() {
 
 
   if [[ "${change_type}" != "delete" && "${refname_type}" == "branch" ]]; then
-    changeseturlpattern=`git config --get hooks.slack.changeset-url-pattern`
-    compareurlpattern=`git config --get hooks.slack.compare-url-pattern`
-    reporoot=`git config --get hooks.slack.repos-root`
+    changeseturlpattern=$(git config --get hooks.slack.changeset-url-pattern)
+    compareurlpattern=$(git config --get hooks.slack.compare-url-pattern)
+    reporoot=$(git config --get hooks.slack.repos-root)
 
     urlformat=
     if [ -n "$changeseturlpattern" -a -n "$reporoot" ]; then
       if [[ $PWD == ${reporoot}* ]]; then
         repopath=$PWD
-        base=`basename $PWD`
+        base=$(basename $PWD)
         if [ "$base" == ".git" ]; then
-          repopath=`dirname $repopath`
+          repopath=$(dirname $repopath)
         fi
-        idx=`echo $reporoot | wc -c | tr -d ' '`
-        repopath=`echo $repopath | cut -c$idx-`
+        idx=$(echo $reporoot | wc -c | tr -d ' ')
+        repopath=$(echo $repopath | cut -c$idx-)
         urlformat=`echo $changeseturlpattern | sed "s|%repo_path%|$repopath|g" | sed "s/%rev_hash%/%H/g"`
 
         if [ -n "$compareurlpattern" ]; then
           comparelink=`echo $compareurlpattern | sed "s|%repo_path%|$repopath|g"  | sed "s|%old_rev_hash%|$oldrev|g" | sed "s|%new_rev_hash%|$newrev|g"`
-          header=`echo $header | sed -e "s|\([a-zA-Z0-9]\{1,\} new commit[s]\{0,1\}\)|\<$comparelink\|\\1\>|"`
+          header=$(echo $header | sed -e "s|\([a-zA-Z0-9]\{1,\} new commit[s]\{0,1\}\)|\<$comparelink\|\\1\>|")
         fi
       else
         echo >&2 "$PWD is not in $reporoot. Not creating hyperlinks."
