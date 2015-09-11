@@ -60,6 +60,10 @@ Specifies whether you want to show only the last commit (or all) when pushing mu
 
 Specifies whether you want to show the body of the commit message as well as the title.
 
+    git config hooks.slack.branch-regexp regexp
+
+Specifies if you want to send only certain branches
+
 ## Linking to Changesets
 
 When the following parameters are set, revision hashes will be turned into links to a web view of your repository.
