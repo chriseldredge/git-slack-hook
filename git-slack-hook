@@ -132,7 +132,7 @@ function notify() {
   repoprefix=$(git config hooks.slack.repo-nice-name || git config hooks.irc.prefix || git config hooks.emailprefix || echo "$repo")
   onlylast=$(git config --get hooks.slack.show-only-last-commit)
   onlylast=$onlylast && [ -n "$onlylast" ]
-  fullcommit=`git config --get hooks.slack.show-full-commit`
+  fullcommit=$(git config --get hooks.slack.show-full-commit)
 
   # Get the user information
   # If $GL_USER is set we're running under gitolite.
