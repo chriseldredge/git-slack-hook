@@ -204,7 +204,7 @@ function notify() {
 
         if [ -n "$compareurlpattern" ]; then
           comparelink=$(echo $compareurlpattern | replace_variables)
-          header=$(echo $header | sed -e "s|\([a-zA-Z0-9]\{1,\} new commit[s]\{0,1\}\)|\<$comparelink\|\\1\>|")
+          header=$(echo $header | sed -e "s|\([0-9]\+ new commits\?\)|\<$comparelink\|\\1\>|")
         fi
       else
         echo >&2 "$PWD is not in $reporoot. Not creating hyperlinks."
