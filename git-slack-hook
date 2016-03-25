@@ -243,15 +243,26 @@ function notify() {
     fi
 
     # Process the log and escape double quotes; assuming for now that committer names don't have five semicolons in them
-    log_out=$( git log --pretty=format:"%cN;;;;;${formattedurl}${commitformat}" $countarg ${start}..${end} \
-             | sed ':a;N;$!ba;s/\n/\\n/g' \
-             | sed -e 's/\\/\\\\/g' \
-             | sed -e 's/"/\\"/g' \
-             | sed -e 's/\(.*\);;;;;\(.*\)/{"title":"\1","value":"\2","short":false},/' )
+    if $onlylast; then
+        log_out=$( git log --pretty=format:"%cN;;;;;${formattedurl}${commitformat}" $countarg ${start}..${end} \
+                 | sed ':a;N;$!ba;s/\n/\\n/g' \
+                 | sed -e 's/\\/\\\\/g' \
+                 | sed -e 's/"/\\"/g' \
+                 | sed -e 's/\(.*\);;;;;\(.*\)/{"title":"\1","value":"\2","short":false},/' )
+	    fields=${log_out%?}
+	    attachments="[{ \"fallback\" : \"${header}\", \"color\" : \"good\", \"fields\" : [${fields}]}]"
 
-    fields=${log_out%?}
+    else
+        log_out=$( git log --pretty=format:"%cN;;;;;${formattedurl}${commitformat}" $countarg ${start}..${end} \
+                 | sed ':a;N;$!ba;s/\n+/\\n/g' \
+                 | sed -e 's/\\/\\\\/g' \
+                 | sed -e 's/"/\\"/g' \
+                 | sed -e 's/\(.*\);;;;;\(.*\)/{ \"fallback\" : \"\", \"color\" : \"good\", \"fields\" : [{"title":"\1","value":"\2","short":false},]},/' \
+                 | sed -e 's/,\]/]/' )
 
-    attachments="[{ \"fallback\" : \"${header}\", \"color\" : \"good\", \"fields\" : [${fields}]}]"
+	    attachments="[${log_out%?}]"
+    fi
+
   fi
 
   if [ -n "${attachments}" ] && [[ "${attachments}" != "" ]]; then
