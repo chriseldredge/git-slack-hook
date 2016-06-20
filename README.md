@@ -18,15 +18,16 @@ Finally, `chmod +x post-receive` to allow the script to be executed.
 
 ## Configuration
 
-Add an Incoming WebHooks integration in your Slack by going to e.g.
+Add an Incoming WebHooks integration in your Slack by going to:
 
     https://my.slack.com/services/new/incoming-webhook
 
-Make note of the webhook URL.
+Configure the webhook URL
 
     git config hooks.slack.webhook-url 'https://hooks.slack.com/services/...'
 
 ## Optional
+Specify a channel to post in Slack instead of the default:
 
     git config hooks.slack.channel '#general'
 
@@ -34,35 +35,34 @@ Make note of the webhook URL.
         '@username' - direct message to user
         'groupname' - post to group
 
-Specifies a channel to post in Slack instead of the default.
+Specify a username to post as. If not specified, the default name `incoming-webhook` will be used:
 
     git config hooks.slack.username 'git'
 
-Specifies a username to post as. If not specified, the default name `incoming-webhook` will be used.
+Specify an icon to display in Slack instead of the default:
 
     git config hooks.slack.icon-url 'https://example.com/icon.png'
 
-Specifies an icon to display in Slack instead of the default.
+Specify an emoji icon to display in Slack instead of the default:
 
     git config hooks.slack.icon-emoji ':twisted_rightwards_arrows:'
 
-Specifies an emoji icon to display in Slack instead of the default.
+Specify a repository nice name that will be shown in messages:
 
     git config hooks.slack.repo-nice-name 'My Awesome Repository'
 
-Specifies a repository nice name that will be shown in messages.
+Specify whether you want to show only the last commit (or all) when pushing multiple commits:
 
     git config hooks.slack.show-only-last-commit true
 
-Specifies whether you want to show only the last commit (or all) when pushing multiple commits.
+Specify whether you want to show the body of the commit message as well as the title:
 
     git config hooks.slack.show-full-commit true
 
-Specifies whether you want to show the body of the commit message as well as the title.
+Specify if you want to send only certain branches:
 
     git config hooks.slack.branch-regexp regexp
 
-Specifies if you want to send only certain branches
 
 ## Linking to Changesets
 
