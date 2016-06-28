@@ -22,7 +22,7 @@ Add an Incoming WebHooks integration in your Slack by going to:
 
     https://my.slack.com/services/new/incoming-webhook
 
-Configure the webhook URL. Do this from with the folder that holds your git repo you are adding this script to and execute commands from the command line.
+Configure the webhook URL. Do this from within the folder that holds your git repo you are adding this script to and execute commands from the command line.
 
     git config hooks.slack.webhook-url 'https://hooks.slack.com/services/...'
 
