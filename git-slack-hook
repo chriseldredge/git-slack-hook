@@ -242,16 +242,17 @@ function notify() {
       commitformat="%s"
     fi
 
-    # Process the log and escape double quotes; assuming for now that committer names don't have five semicolons in them
-    log_out=$( git log --pretty=format:"%cN;;;;;${formattedurl}${commitformat}" $countarg ${start}..${end} \
-             | sed ':a;N;$!ba;s/\n/\\n/g' \
-             | sed -e 's/\\/\\\\/g' \
-             | sed -e 's/"/\\"/g' \
-             | sed -e 's/\(.*\);;;;;\(.*\)/{"title":"\1","value":"\2","short":false},/' )
+    # Process the log and escape double quotes and backslashes; assuming commit names/messages don't have five of the following: & ; @
+    log_out=$( git log --pretty=format:"&&&&&%cN;;;;;${formattedurl}${commitformat}@@@@@" $countarg ${start}..${end} \
+        | perl -p -e 's/@@@@@\n+/@@@@@/mg' \
+        | sed -e 's/\\/\\\\/g' \
+        | sed -e 's/"/\\"/g' \
+        | sed -e 's/&&&&&\(.*\);;;;;/{ \"fallback\" : \"\", \"color\" : \"good\", \"fields\" : [{"title":"\1","value":"/g' \
+        | sed -e 's/@@@@@/","short":false},]},/g' \
+        | sed -e 's/,\]/]/' )
 
-    fields=${log_out%?}
+    attachments="[${log_out%?}]"
 
-    attachments="[{ \"fallback\" : \"${header}\", \"color\" : \"good\", \"fields\" : [${fields}]}]"
   fi
 
   if [ -n "${attachments}" ] && [[ "${attachments}" != "" ]]; then
@@ -261,7 +262,7 @@ function notify() {
   fi
 
   # slack API uses \n substitution for newlines
-  # msg=$(echo "${msg}" | perl -p -e 's/\+/&#43;/mg')
+  msg=$(echo -n "${msg}" | perl -p -e 's/\n/\\n/mg')
 
   webhook_url=$(git config --get hooks.slack.webhook-url)
   channel=$(git config --get hooks.slack.channel)
