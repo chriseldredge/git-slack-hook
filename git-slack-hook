@@ -28,6 +28,7 @@ function help() {
   echo " git config hooks.slack.changeset-url-pattern 'http://yourserver/%repo_path%/changeset/%rev_hash%' #optional"
   echo " git config hooks.slack.compare-url-pattern 'http://yourserver/%repo_path%/changeset/%old_rev_hash%..%new_rev_hash%' #optional"
   echo " git config hooks.slack.branch-regexp 'regexp'  #optional"
+  echo " git config http.proxy 'proto://host:port'  #optional"
 }
 
 function replace_variables() {
@@ -274,6 +275,7 @@ function notify() {
   username=$(git config --get hooks.slack.username)
   iconurl=$(git config --get hooks.slack.icon-url)
   iconemoji=$(git config --get hooks.slack.icon-emoji)
+  http_proxy=$(git config --get http.proxy)
 
   if [ -z "$webhook_url" ]; then
     echo "ERROR: config settings not found"
@@ -306,6 +308,7 @@ function notify() {
   fi
 
   curl -s \
+      ${http_proxy:+-x $http_proxy} \
       -d "payload=$payload" \
       "$webhook_url" \
       >/dev/null
