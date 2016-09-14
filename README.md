@@ -10,11 +10,21 @@ Note: some git repositories may be "bare". You'll know if your repo is bare or n
 
 Download [git-slack-hook](https://raw.githubusercontent.com/chriseldredge/git-slack-hook/master/git-slack-hook) onto the server which hosts your git repo.
 
-For bare repos, copy/rename it as `/path/to/your/repo/hooks/post-receive`.
+For bare repos, copy/rename as:
+```
+/path/to/your/repo/hooks/post-receive
+/path/to/your/repo/hooks/post-receive.http-proxy
+```
 
-For normal/non-bare repos, copy/rename it as `/path/to/your/repo/.git/hooks/post-receive`.
+For normal/non-bare repos, copy/rename as:
+```
+/path/to/your/repo/.git/hooks/post-receive
+/path/to/your/repo/.git/hooks/post-receive.http-proxy
+```
 
-Finally, `chmod +x post-receive` to allow the script to be executed.
+Finally:
+* `chmod +x post-receive` to allow the script to be executed.
+* Edit `hooks/post-receive.http-proxy` if using an HTTP proxy.
 
 ## Configuration
 
@@ -27,6 +37,7 @@ Configure the webhook URL
     git config hooks.slack.webhook-url 'https://hooks.slack.com/services/...'
 
 ## Optional
+
 Specify a channel to post in Slack instead of the default:
 
     git config hooks.slack.channel '#general'

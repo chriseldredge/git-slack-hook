@@ -1,0 +1,2 @@
+#export http_proxy='http://your.proxy.local:3128/'
+#export https_proxy='http://your.proxy.local:3128/'

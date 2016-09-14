@@ -308,6 +308,9 @@ function notify() {
 }
 
 # MAIN PROGRAM
+# Source in http proxy environment variables
+[ -e "${0}.http-proxy" ] && . "${0}.http-proxy"
+
 # Read all refs from stdin, notify slack for each
 while read line; do
   set -- $line
