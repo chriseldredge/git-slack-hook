@@ -4,6 +4,10 @@ This is a bash script that posts a message into your [Slack](https://slack.com) 
 
 Hook this script into `post-receive` for your git repositories.
 
+## Prerequisite
+
+- curl must be installed
+
 ## How to Install
 
 Note: some git repositories may be "bare". You'll know if your repo is bare or not by checking for a `.git` folder where your repo lives.
