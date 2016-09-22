@@ -27,6 +27,7 @@ function help() {
   echo " git config hooks.slack.repos-root '/path/to/repos' #optional"
   echo " git config hooks.slack.changeset-url-pattern 'http://yourserver/%repo_path%/changeset/%rev_hash%' #optional"
   echo " git config hooks.slack.compare-url-pattern 'http://yourserver/%repo_path%/changeset/%old_rev_hash%..%new_rev_hash%' #optional"
+  echo " git config hooks.slack.issuetracker-url 'http://yourid.atlassian.net/browse/' #optional"
   echo " git config hooks.slack.branch-regexp 'regexp'  #optional"
 }
 
@@ -250,6 +251,11 @@ function notify() {
         | sed -e 's/&&&&&\(.*\);;;;;/{ \"fallback\" : \"\", \"color\" : \"good\", \"fields\" : [{"title":"\1","value":"/g' \
         | sed -e 's/@@@@@/","short":false},]},/g' \
         | sed -e 's/,\]/]/' )
+
+    issuetracker_url=$(git config --get hooks.slack.issuetracker-url | sed -e 's/\//\\\//g' )
+    if [ -n "$issuetracker_url" ]; then
+      log_out=$(echo "$log_out" | sed -e "s/\([A-Z]\{2,\}\-[0-9]\{1,\}\)/<${issuetracker_url}\1|\1>/g")
+    fi
 
     attachments="[${log_out%?}]"
 

@@ -76,3 +76,9 @@ For example, if your repository is in `/usr/local/repos/myrepo`, set repos_root 
 Links can also be created that summarize a list of commits:
 
     git config hooks.slack.compare-url-pattern 'http://yourserver/%repo_path%/compare/%old_rev_hash%..%new_rev_hash%'
+
+## Linking to your issue tracker
+
+When set, any issue keys in commit messages get linked to your tracker. (example using JIRA)
+
+    git config hooks.slack.issuetracker-url 'http://yourid.atlassian.net/browse/'
