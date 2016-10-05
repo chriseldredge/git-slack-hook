@@ -56,7 +56,7 @@ function notify() {
   fi
 
   # --- Get the revision types
-  newrev_type=$(git cat-file -t $newrev 2> /dev/null)
+  newrev_type=$(git cat-file -t "$newrev" 2> /dev/null)
   oldrev_type=$(git cat-file -t "$oldrev" 2> /dev/null)
   case "$change_type" in
     create|update)
