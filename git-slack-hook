@@ -126,13 +126,13 @@ function notify() {
   # Repo name, either Gitolite or normal repo.
   if [ -n "$GL_REPO" ]; then
     # it's a gitolite repo
-    repodir=$(basename $(pwd))
+    repodir=$(basename "$(pwd)")
     repo=$GL_REPO
   else
-    repodir=$(basename $(pwd))
+    repodir=$(basename "$(pwd)")
     if [ "$repodir" == ".git" ]; then
-      repodir=$(dirname $PWD)
-      repodir=$(basename $repodir)
+      repodir=$(dirname "$PWD")
+      repodir=$(basename "$repodir")
     fi
     repo=${repodir%.git}
   fi
