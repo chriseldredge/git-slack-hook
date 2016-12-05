@@ -12,7 +12,7 @@ Download [git-slack-hook](https://raw.githubusercontent.com/chriseldredge/git-sl
 
 For bare repos, copy/rename it as `/path/to/your/repo/hooks/post-receive`.
 
-For normal/non-bare repos, copy/rename it as `/path/to/your/.git/hooks/post-receive`.
+For normal/non-bare repos, copy/rename it as `/path/to/your/repo/.git/hooks/post-receive`.
 
 Finally, `chmod +x post-receive` to allow the script to be executed.
 
