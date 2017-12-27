@@ -189,6 +189,7 @@ function notify() {
     changeseturlpattern=$(git config --get hooks.slack.changeset-url-pattern)
     compareurlpattern=$(git config --get hooks.slack.compare-url-pattern)
     reporoot=$(git config --get hooks.slack.repos-root)
+    reporoot=$(readlink -f $reporoot)  # Get absolute path
 
     urlformat=
     if [ -n "$changeseturlpattern" -a -n "$reporoot" ]; then
