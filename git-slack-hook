@@ -31,7 +31,52 @@ function help() {
 }
 
 function replace_variables() {
-	sed "s|%repo_path%|$repopath|g;s|%old_rev_hash%|$oldrev|g;s|%new_rev_hash%|$newrev|g;s|%rev_hash%|$newrev|g;s|%repo_prefix%|$repoprefix|g"
+  sed "s|%repo_path%|$repopath|g;s|%old_rev_hash%|$oldrev|g;s|%new_rev_hash%|$newrev|g;s|%rev_hash%|$newrev|g;s|%repo_prefix%|$repoprefix|g"
+}
+
+
+function json_string() {
+  # takes care of special characters and unicode escapes. assumes
+  # input is utf-8 (in practice, every commit message may have a
+  # different encoding). invalid utf-8 sequences are replaced
+  # ("\ufffd" or "\u00XX" depending on input).
+  python -c "import sys, json; print json.dumps(sys.argv[1].decode('utf-8', 'replace'))" "$1"
+}
+
+function json_join() {
+  local IFS=","
+  echo -n "$*";
+}
+
+function parse_record() {
+  # parse_record STREAMVAR SEPARATOR [FIELDVAR]+
+  #
+  # Works similarly to the `read` builtin. Instead of using IFS, it
+  # splits fields based on the separator given. It reads from and
+  # modifies in place variable named STREAMVAR.  Subsequent parameters
+  # are variable _names_ used to store tokens, in order.
+  #
+  # variable STREAMVAR will be advanced by one record: [<FIELD><SEP>]+[\n]*
+  #
+
+  local -n stream=$1
+  local -n field
+  local sep="$2"
+  local lf=$'\n' #newline
+
+  shift 2
+
+  # field will point to a different field variable in turn
+  for field in "$@"; do
+    field="${stream%%${sep}*}"
+    # advance stream
+    stream="${stream:${#field}}"
+    stream="${stream:${#sep}}"
+  done
+  # eat trailing newlines between records
+  while [[ "${stream:0:1}" == $lf ]]; do
+    stream=${stream:1}
+  done
 }
 
 function notify() {
@@ -56,7 +101,7 @@ function notify() {
   fi
 
   # --- Get the revision types
-  newrev_type=$(git cat-file -t $newrev 2> /dev/null)
+  newrev_type=$(git cat-file -t "$newrev" 2> /dev/null)
   oldrev_type=$(git cat-file -t "$oldrev" 2> /dev/null)
   case "$change_type" in
     create|update)
@@ -126,13 +171,13 @@ function notify() {
   # Repo name, either Gitolite or normal repo.
   if [ -n "$GL_REPO" ]; then
     # it's a gitolite repo
-    repodir=$(basename $(pwd))
+    repodir=$(basename "$(pwd)")
     repo=$GL_REPO
   else
-    repodir=$(basename $(pwd))
+    repodir=$(basename "$(pwd)")
     if [ "$repodir" == ".git" ]; then
-      repodir=$(dirname $PWD)
-      repodir=$(basename $repodir)
+      repodir=$(dirname "$PWD")
+      repodir=$(basename "$repodir")
     fi
     repo=${repodir%.git}
   fi
@@ -197,19 +242,22 @@ function notify() {
 
     urlformat=
     if [ -n "$changeseturlpattern" -a -n "$reporoot" ]; then
-      if [[ $PWD == ${reporoot}* ]]; then
+      if [[ "$PWD" == ${reporoot}* ]]; then
         repopath=$PWD
-        base=$(basename $PWD)
+        base=$(basename "$PWD")
         if [ "$base" == ".git" ]; then
           repopath=$(dirname $repopath)
         fi
-        idx=$(echo $reporoot | wc -c | tr -d ' ')
-        repopath=$(echo $repopath | cut -c$idx-)
-        urlformat=$(echo $changeseturlpattern | replace_variables)
+        idx=$(echo "$reporoot" | wc -c | tr -d ' ')
+        repopath=$(echo "$repopath" | cut -c$idx-)
+        urlformat=$(echo "$changeseturlpattern" | replace_variables)
 
         if [ -n "$compareurlpattern" ]; then
-          comparelink=$(echo $compareurlpattern | replace_variables)
-          header=$(echo $header | sed -e "s|\([a-zA-Z0-9]\{1,\} new commit[s]\{0,1\}\)|\<$comparelink\|\\1\>|")
+          comparelink=$(echo "$compareurlpattern" | replace_variables)
+	  # insert > after 'new commit(s)'.
+	  # we avoid using comparelink on replacement of sed call (because of possible &)
+          header=$(echo "$header" | sed -e "s|\([a-zA-Z0-9]\{1,\} new commit[s]\{0,1\}\)\(.*\)|\\1\>\\2|")
+	  header="<$comparelink|$header"
         fi
       else
         echo >&2 "$PWD is not in $reporoot. Not creating hyperlinks."
@@ -247,27 +295,38 @@ function notify() {
       commitformat="%s"
     fi
 
-    # Process the log and escape double quotes and backslashes; assuming commit names/messages don't have five of the following: & ; @
-    log_out=$( git log --pretty=format:"&&&&&%cN;;;;;${formattedurl}${commitformat}@@@@@" $countarg ${start}..${end} \
-        | perl -p -e 's/@@@@@\n+/@@@@@/mg' \
-        | sed -e 's/\\/\\\\/g' \
-        | sed -e 's/"/\\"/g' \
-        | sed -e 's/&&&&&\(.*\);;;;;/{ \"fallback\" : \"\", \"color\" : \"good\", \"fields\" : [{"title":"\1","value":"/g' \
-        | sed -e 's/@@@@@/","short":false},]},/g' \
-        | sed -e 's/,\]/]/' )
+    sep="boundary-${RANDOM}-${RANDOM}-${RANDOM}-${RANDOM}-${RANDOM}-${RANDOM}-${RANDOM}--"
+    log_out=$(git log --pretty=format:"%cN${sep}${formattedurl}${commitformat}${sep}" $countarg "${start}..${end}")
+    attachment_arr=()
+    while [[ -n "${log_out}" ]]; do
+      title=""
+      value=""
+      parse_record log_out "${sep}" title value
 
-    attachments="[${log_out%?}]"
+      attachment_arr+=('
+{
+  "fallback": "",
+  "color": "good",
+  "fields": [{
+    "title": '"$(json_string "$title")"',
+    "value": '"$(json_string "$value")"',
+    "short": false
+  }]
+}')
+    done
+
 
   fi
 
-  if [ -n "${attachments}" ] && [[ "${attachments}" != "" ]]; then
-    msg=$(echo -e "\"text\":\"${header}\", \"attachments\" : $attachments")
+  if [[ "${#attachment_arr[@]}" -gt 0 ]]; then
+    attachments="[ $( json_join "${attachment_arr[@]}" ) ]"
+    msg='
+"text": '"$(json_string "$header")"',
+"attachments": '"$attachments"
   else
-    msg=$(echo -e "\"text\":\"${header}\"")
+    msg='
+"text": '"$(json_string "${header}")"
   fi
-
-  # slack API uses \n substitution for newlines
-  msg=$(echo -n "${msg}" | perl -p -e 's/\n/\\n/mg')
 
   webhook_url=$(git config --get hooks.slack.webhook-url)
   channel=$(git config --get hooks.slack.channel)
@@ -283,21 +342,12 @@ function notify() {
 
   payload="{${msg}"
 
-  if [ -n "$channel" ]; then
-    payload="$payload, \"channel\": \"$channel\""
-  fi
+  [[ -z "$channel" ]]   || payload+=',"channel":'"$(json_string "$channel")"
+  [[ -z "$username" ]]  || payload+=',"username":'"$(json_string "$username")"
+  [[ -z "$iconurl" ]]   || payload+=',"icon_url":'"$(json_string "$iconurl")"
+  [[ -z "$iconemoji" ]] || payload+=',"icon_emoji":'"$(json_string "$iconemoji")"
 
-  if [ -n "$username" ]; then
-    payload="$payload, \"username\": \"$username\""
-  fi
-
-  if [ -n "$iconurl" ]; then
-    payload="$payload, \"icon_url\": \"$iconurl\""
-  elif [ -n "$iconemoji" ]; then
-    payload="$payload, \"icon_emoji\": \"$iconemoji\""
-  fi
-
-  payload="$payload}"
+  payload+="}"
 
   if [ -n "$DEBUG" ]; then
     echo "POST $webhook_url"
@@ -306,7 +356,7 @@ function notify() {
   fi
 
   curl -s \
-      -d "payload=$payload" \
+      --data-urlencode "payload=$payload" \
       "$webhook_url" \
       >/dev/null
 
