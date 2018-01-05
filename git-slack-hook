@@ -252,7 +252,7 @@ function notify() {
         | perl -p -e 's/@@@@@\n+/@@@@@/mg' \
         | sed -e 's/\\/\\\\/g' \
         | sed -e 's/"/\\"/g' \
-        | sed -e 's/&&&&&\(.*\);;;;;/{ \"fallback\" : \"\", \"color\" : \"good\", \"fields\" : [{"title":"\1","value":"/g' \
+        | sed -e 's/&&&&&\([^;]*\);;;;;/{ "fallback" : "", "color" : "good", "fields" : [{"title":"\1","value":"/g' \
         | sed -e 's/@@@@@/","short":false},]},/g' \
         | sed -e 's/,\]/]/' )
 
